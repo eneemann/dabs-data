@@ -11,13 +11,9 @@ Script to export Master Address Table (MAT) for DABS OpenGov database
 
 import os
 import time
-import zipfile
-import wget
 import arcpy
-import requests
 import pandas as pd
 import numpy as np
-from arcgis.features import GeoAccessor, GeoSeriesAccessor
 import h3
 from tqdm import tqdm
 
@@ -172,7 +168,7 @@ addpts_slim.nunique()
 
 
 #: Export dataframe to CSV
-mat_csv = os.path.join(work_dir, f'DABS_{today}_mat.csv')
+mat_csv = os.path.join(work_dir, f'DABS_mat.csv')
 addpts_slim.to_csv(mat_csv)
 
 
