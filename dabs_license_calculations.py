@@ -9,10 +9,16 @@ import arcpy
 import os
 import time
 
-dabs_db = r"C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\DABC.gdb"
-dabs_licenses = os.path.join(dabs_db, "DABS_All_Licenses_20220923_calcs")
+#: Start timer and print start time in UTC
+start_time = time.time()
+readable_start = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+print("The script start time is {}".format(readable_start))
+today = time.strftime("%Y%m%d")
 
+dabs_db = r"C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\DABS_latest_data.gdb"
+dabs_licenses = os.path.join(dabs_db, "DABS_All_Licenses")
 
+#: Create dictionaries for attribute look-ups based on two-letter license type code
 dabs_descr = {
     'AL': 'AIRPORT LOUNGE',
     'AR': 'ARENA LICENSE',
@@ -127,7 +133,6 @@ dabs_group = {
     'TV': 'Bar'
 }
 
-
 dabs_comp_needed = {
     'AL': 'yes',
     'AR': 'no',
@@ -166,9 +171,9 @@ dabs_comp_needed = {
     'TV': 'yes'
 }
 
-# Calculate DABS fields from License Number
+#: Calculate DABS fields from License Number
 update_count = 0
-#               0          1             2            3            4              5
+#:               0          1             2            3            4              5
 fields = ['Lic_Number', 'Lic_Type', 'Lic_Descr', 'Lic_Group', 'Renew_Date', 'Comp_Needed']
 with arcpy.da.UpdateCursor(dabs_licenses, fields) as cursor:
     print("Looping through rows to calculate DABS fields ...")
@@ -182,3 +187,16 @@ with arcpy.da.UpdateCursor(dabs_licenses, fields) as cursor:
         update_count += 1
         cursor.updateRow(row)
 print(f"Total count of updates is {update_count}")
+
+#: Calculate lon/lat values for all points (in WGS84 coords)
+lat_calc = 'arcpy.PointGeometry(!Shape!.centroid, !Shape!.spatialReference).projectAs(arcpy.SpatialReference(4326)).centroid.Y'
+lon_calc = 'arcpy.PointGeometry(!Shape!.centroid, !Shape!.spatialReference).projectAs(arcpy.SpatialReference(4326)).centroid.X'
+
+arcpy.management.CalculateField(dabs_licenses, 'Point_Y', lat_calc, "PYTHON3")
+arcpy.management.CalculateField(dabs_licenses, 'Point_X', lon_calc, "PYTHON3")
+
+#: Stop timer and print end time in UTC
+print("Script shutting down ...")
+readable_end = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+print("The script end time is {}".format(readable_end))
+print("Time elapsed: {:.2f}s".format(time.time() - start_time))dabs_licenses
