@@ -17,19 +17,23 @@ today = time.strftime("%Y%m%d")
 
 #: Create variables
 dabs_db = r"C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\DABS_latest_data.gdb"
+SGID = r"C:\Users\eneemann\AppData\Roaming\ESRI\ArcGISPro\Favorites\internal@SGID@internal.agrc.utah.gov.sde"
 dabs_licenses = os.path.join(dabs_db, "DABS_All_Licenses")
 zone_path = os.path.join(dabs_db, 'DABS_Compliance_Zones')
+county_path = os.path.join(SGID, 'SGID.BOUNDARIES.Counties')
 
 #: Set up polygon assignment fields
 zone_field = 'Zone_ID'
 group_field = 'Group_Name'
+county_field = 'NAME'
 
 #: Create polygon assignment dictionary where key is name of field that needs updated in points layer
 #: format is:
         #: 'pt_field_name': {'poly_path': path, 'poly_field': field}
 poly_dict = {
         'Comp_Zone': {'poly_path': zone_path, 'poly_field': zone_field},
-        'Comp_Group': {'poly_path': zone_path, 'poly_field': group_field}
+        'Comp_Group': {'poly_path': zone_path, 'poly_field': group_field},
+        'County': {'poly_path': county_path, 'poly_field': county_field}
         }
 
 #: Create dictionaries for attribute look-ups based on two-letter license type code
