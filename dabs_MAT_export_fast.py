@@ -156,7 +156,7 @@ addpts_slim = addpts_sdf[columns]
 
 #: Strip all strings of whitespace
 strip_time = time.time()
-addpts_slim.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+addpts_slim = addpts_slim.applymap(lambda x: x.strip() if isinstance(x, str) else x)
 print("\n    Time elapsed stripping all whitespace: {:.2f}s".format(time.time() - strip_time))
 
 #: Compare size of dataframe before/after removing duplicates
