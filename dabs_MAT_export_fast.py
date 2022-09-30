@@ -13,6 +13,7 @@ import os
 import time
 import arcpy
 import pandas as pd
+from arcgis import GeoAccessor, GeoSeriesAccessor
 import numpy as np
 import h3
 from tqdm import tqdm
@@ -130,8 +131,8 @@ print("\n    Time elapsed for STREET calculation: {:.2f}s".format(time.time() - 
 #: Calc lat/lon as new variable
 print("Calculating lat/lon as a new column ...")
 latlon_time = time.time()
-addpts_sdf['longitude'] = addpts_sdf.SHAPE.apply(lambda p: p.x)
-addpts_sdf['latitude'] = addpts_sdf.SHAPE.apply(lambda p: p.y)
+addpts_sdf['longitude'] = addpts_sdf.SHAPE.progress_apply(lambda p: p.x)
+addpts_sdf['latitude'] = addpts_sdf.SHAPE.progress_apply(lambda p: p.y)
 print("\n    Time elapsed for lat/lon as new variable: {:.2f}s".format(time.time() - latlon_time))
 
 #: Use basic h3 to test timing in a lamdba function
@@ -152,6 +153,11 @@ print("\n    Time elapsed in matID as a lambda function: {:.2f}s".format(time.ti
 columns = ['FullAdd', 'AddNum', 'PrefixDir', 'StreetName', 'SuffixDir', 'StreetType', 'UNIT', 'STREET', 'City', 'ZipCode', 'State',
            'ParcelID', 'longitude', 'latitude', 'matID']
 addpts_slim = addpts_sdf[columns]
+
+#: Strip all strings of whitespace
+strip_time = time.time()
+addpts_slim.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+print("\n    Time elapsed stripping all whitespace: {:.2f}s".format(time.time() - strip_time))
 
 #: Compare size of dataframe before/after removing duplicates
 orig_length = len(addpts_slim.index)
