@@ -249,13 +249,24 @@ def assign_poly_attr(pts, polygonDict):
         # Delete in memory near table
         arcpy.management.Delete(neartable)
 
+#: Create layer for field calculations and polygon assignments
+query = """County IS NULL or County IN ('', ' ')"""
+arcpy.management.MakeFeatureLayer(dabs_licenses, "dabs_lyr", query)
 
+#: Calculate lon/lat values for all points (in WGS84 coords)
+print("Calculating lat/lon values ...")
+lat_calc = 'arcpy.PointGeometry(!Shape!.centroid, !Shape!.spatialReference).projectAs(arcpy.SpatialReference(4326)).centroid.Y'
+lon_calc = 'arcpy.PointGeometry(!Shape!.centroid, !Shape!.spatialReference).projectAs(arcpy.SpatialReference(4326)).centroid.X'
+
+where_clause = "STREET IS NOT NULL AND (L_F_ADD > 0 OR R_F_ADD > 0)"
+arcpy.management.CalculateField("dabs_lyr", 'Point_Y', lat_calc, "PYTHON3")
+arcpy.management.CalculateField("dabs_lyr", 'Point_X', lon_calc, "PYTHON3")
 
 #: Calculate DABS fields from License Number
 update_count = 0
-#:               0          1             2            3            4              5
-fields = ['Lic_Number', 'Lic_Type', 'Lic_Descr', 'Lic_Group', 'Renew_Date', 'Comp_Needed']
-with arcpy.da.UpdateCursor(dabs_licenses, fields) as cursor:
+#:               0          1             2            3            4              5            6
+fields = ['Lic_Number', 'Lic_Type', 'Lic_Descr', 'Lic_Group', 'Renew_Date', 'Comp_Needed', 'Suite_Unit']
+with arcpy.da.UpdateCursor("dabs_lyr", fields) as cursor:
     print("Looping through rows to calculate DABS fields ...")
     for row in cursor:
         lic_type = row[0][:2]
@@ -264,19 +275,18 @@ with arcpy.da.UpdateCursor(dabs_licenses, fields) as cursor:
         row[3] = dabs_group[f'{lic_type}']
         row[4] = dabs_renew[f'{lic_type}']
         row[5] = dabs_comp_needed[f'{lic_type}']
+        row[6] = None
         update_count += 1
         cursor.updateRow(row)
 print(f"Total count of updates is {update_count}")
 
-#: Calculate lon/lat values for all points (in WGS84 coords)
-lat_calc = 'arcpy.PointGeometry(!Shape!.centroid, !Shape!.spatialReference).projectAs(arcpy.SpatialReference(4326)).centroid.Y'
-lon_calc = 'arcpy.PointGeometry(!Shape!.centroid, !Shape!.spatialReference).projectAs(arcpy.SpatialReference(4326)).centroid.X'
-
-arcpy.management.CalculateField(dabs_licenses, 'Point_Y', lat_calc, "PYTHON3")
-arcpy.management.CalculateField(dabs_licenses, 'Point_X', lon_calc, "PYTHON3")
-
 #: Call polygon assignment function
-assign_poly_attr(dabs_licenses, poly_dict)
+print("Assigning polygon attributes ...")
+assign_poly_attr("dabs_lyr", poly_dict)
+
+#: Delete temporary layer
+if arcpy.Exists("dabs_lyr"):
+    arcpy.Delete_management("dabs_lyr")
 
 #: Stop timer and print end time in UTC
 print("Script shutting down ...")
