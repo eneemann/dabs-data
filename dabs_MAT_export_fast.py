@@ -87,13 +87,12 @@ def project_fc():
     arcpy.Project_management(addpts, addpts_wgs84, sr, "WGS_1984_(ITRF00)_To_NAD_1983")
 
      
-        
-
+########################    
 #: Call functions 
 create_gdb()
 addpts = export_sgid()
 project_fc()
-
+#########################
 
 
 #: Convert working feature class to spatial data frame
@@ -105,6 +104,10 @@ print("Updating UTAddPtID as a lambda function ...")
 update_time = time.time()
 addpts_sdf['UTAddPtID'] = addpts_sdf.progress_apply(lambda r: f'''{r['UTAddPtID']}'''.replace(' | ', '_').replace(' ', '_').strip(), axis=1)
 print("\n    Time elapsed updating UTAddPtID as a lambda function: {:.2f}s".format(time.time() - update_time))
+
+#: Populate 'City' with address system where city is empty
+print("Populating 'City' with 'AddSystem' where blank ...")
+addpts_sdf['City'] = addpts_sdf['City'].where(addpts_sdf['City'].str.len() > 0, addpts_sdf['AddSystem'])
 
 #: Calc UNIT as new variable
 print("Calculating UNIT as a new column ...")
