@@ -241,8 +241,9 @@ def assign_poly_attr(pts, polygonDict):
 
 #: Calculate DABS fields from License Number
 update_count = 0
-#:               0          1             2            3            4              5
-fields = ['Lic_Number', 'Lic_Type', 'Lic_Descr', 'Lic_Group', 'Renew_Date', 'Comp_Needed']
+query = """"""
+#:               0          1             2            3            4              5            6
+fields = ['Lic_Number', 'Lic_Type', 'Lic_Descr', 'Lic_Group', 'Renew_Date', 'Comp_Needed', 'Suite_Unit']
 with arcpy.da.UpdateCursor(dabs_licenses, fields) as cursor:
     print("Looping through rows to calculate DABS fields ...")
     for row in cursor:
@@ -252,11 +253,13 @@ with arcpy.da.UpdateCursor(dabs_licenses, fields) as cursor:
         row[3] = dabs_group[f'{lic_type}']
         row[4] = dabs_renew[f'{lic_type}']
         row[5] = dabs_comp_needed[f'{lic_type}']
+        row[6] = None
         update_count += 1
         cursor.updateRow(row)
 print(f"Total count of updates is {update_count}")
 
 #: Calculate lon/lat values for all points (in WGS84 coords)
+print("Calculating lat/lon values ...")
 lat_calc = 'arcpy.PointGeometry(!Shape!.centroid, !Shape!.spatialReference).projectAs(arcpy.SpatialReference(4326)).centroid.Y'
 lon_calc = 'arcpy.PointGeometry(!Shape!.centroid, !Shape!.spatialReference).projectAs(arcpy.SpatialReference(4326)).centroid.X'
 
@@ -264,6 +267,7 @@ arcpy.management.CalculateField(dabs_licenses, 'Point_Y', lat_calc, "PYTHON3")
 arcpy.management.CalculateField(dabs_licenses, 'Point_X', lon_calc, "PYTHON3")
 
 #: Call polygon assignment function
+print("Assigning polygon attributes ...")
 assign_poly_attr(dabs_licenses, poly_dict)
 
 #: Stop timer and print end time in UTC
