@@ -250,6 +250,9 @@ def assign_poly_attr(pts, polygonDict):
         arcpy.management.Delete(neartable)
 
 #: Create layer for field calculations and polygon assignments
+#: Delete temporary layer
+if arcpy.Exists("dabs_lyr"):
+    arcpy.Delete_management("dabs_lyr")
 query = """County IS NULL or County IN ('', ' ')"""
 arcpy.management.MakeFeatureLayer(dabs_licenses, "dabs_lyr", query)
 
@@ -258,7 +261,6 @@ print("Calculating lat/lon values ...")
 lat_calc = 'arcpy.PointGeometry(!Shape!.centroid, !Shape!.spatialReference).projectAs(arcpy.SpatialReference(4326)).centroid.Y'
 lon_calc = 'arcpy.PointGeometry(!Shape!.centroid, !Shape!.spatialReference).projectAs(arcpy.SpatialReference(4326)).centroid.X'
 
-where_clause = "STREET IS NOT NULL AND (L_F_ADD > 0 OR R_F_ADD > 0)"
 arcpy.management.CalculateField("dabs_lyr", 'Point_Y', lat_calc, "PYTHON3")
 arcpy.management.CalculateField("dabs_lyr", 'Point_X', lon_calc, "PYTHON3")
 
@@ -269,7 +271,7 @@ fields = ['Lic_Number', 'Lic_Type', 'Lic_Descr', 'Lic_Group', 'Renew_Date', 'Com
 with arcpy.da.UpdateCursor("dabs_lyr", fields) as cursor:
     print("Looping through rows to calculate DABS fields ...")
     for row in cursor:
-        lic_type = row[0][:2]
+        lic_type = row[0][:2].upper()
         row[1] = lic_type
         row[2] = dabs_descr[f'{lic_type}']
         row[3] = dabs_group[f'{lic_type}']
