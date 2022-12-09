@@ -48,11 +48,27 @@ addr_path = os.path.join(SGID, 'SGID.LOCATION.AddressPoints')
 
 #: Get SGID layers names from paths
 addr = addr_path.split('.')[-1]
-
 SGID_files = [addr]
 SGID_layers = [addr_path]
-
 addpts = os.path.join(today_db, addr)
+
+#: Set up polygon layer paths
+dabs_db = r"C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\DABS_latest_data.gdb"
+zone_path = os.path.join(dabs_db, 'DABS_Compliance_Zones')
+flag_path = os.path.join(dabs_db, 'DABS_Flag_Areas')
+
+#: Set up polygon assignment fields
+group_field = 'Group_Name'
+flag_field = 'category'
+
+#: Create polygon assignment dictionary where key is name of field that needs updated in points layer
+#: format is:
+        #: 'pt_field_name': {'poly_path': path, 'poly_field': field}
+poly_dict = {
+        'Comp_Group': {'poly_path': zone_path, 'poly_field': group_field},
+        'Flag': {'poly_path': flag_path, 'poly_field': flag_field}
+        }
+
 
 #: Create working geodatabase with today's date
 def create_gdb():
@@ -85,13 +101,72 @@ def project_fc():
     print("Projecting to WGS84 ...")
     sr = arcpy.SpatialReference("WGS 1984")
     arcpy.Project_management(addpts, addpts_wgs84, sr, "WGS_1984_(ITRF00)_To_NAD_1983")
+    
+    
+#: Create function for compliance zone assignments
+def assign_poly_attr(pts, polygonDict):
+    
+    arcpy.env.workspace = os.path.dirname(pts)
+    arcpy.env.overwriteOutput = True
+    
+    for lyr in polygonDict:
+        # set path to polygon layer
+        polyFC = polygonDict[lyr]['poly_path']
+        print (f'working on {polyFC} ... ')
+        
+        # generate near table for each polygon layer
+        neartable = 'in_memory\\near_table'
+        arcpy.analysis.GenerateNearTable(pts, polyFC, neartable, '1 Meters', 'NO_LOCATION', 'NO_ANGLE', 'CLOSEST')
+        
+        # create dictionaries to store data
+        pt_poly_link = {}       # dictionary to link points and polygons by OIDs 
+        poly_OID_field = {}     # dictionary to store polygon NEAR_FID as key, polygon field as value
+    
+        # loop through near table, store point IN_FID (key) and polygon NEAR_FID (value) in dictionary (links two features)
+        with arcpy.da.SearchCursor(neartable, ['IN_FID', 'NEAR_FID', 'NEAR_DIST']) as nearCur:
+            for row in nearCur:
+                pt_poly_link[row[0]] = row[1]       # IN_FID will return NEAR_FID
+                # add all polygon OIDs as key in dictionary
+                poly_OID_field.setdefault(row[1])
+        
+        # loop through polygon layer, if NEAR_FID key in poly_OID_field, set value to poly field name
+        with arcpy.da.SearchCursor(polyFC, ['OID@', polygonDict[lyr]['poly_field']]) as polyCur:
+            for row in polyCur:
+                if row[0] in poly_OID_field:
+                    poly_OID_field[row[0]] = row[1]
+        
+        # loop through points layer, using only OID and field to be updated
+        with arcpy.da.UpdateCursor(pts, ['OID@', lyr]) as uCur:
+            for urow in uCur:
+                try:
+                    # search for corresponding polygon OID in polygon dictionay (polyDict)
+                    if pt_poly_link[urow[0]] in poly_OID_field:
+                        # if found, set point field equal to polygon field
+                        # IN_FID in pt_poly_link returns NEAR_FID, which is key in poly_OID_field that returns value of polygon field
+                        urow[1] =  poly_OID_field[pt_poly_link[urow[0]]]
+                except:         # if error raised, just put a blank in the field
+                    urow[1] = ''
+                uCur.updateRow(urow)
+    
+        # Delete in-memory near table
+        arcpy.management.Delete(neartable)
 
      
 ########################    
 #: Call functions 
-create_gdb()
-addpts = export_sgid()
-project_fc()
+# create_gdb()
+# addpts = export_sgid()
+# project_fc()
+
+# arcpy.management.AddField(addpts_wgs84, "Flag", "TEXT", "", "", 10)
+# arcpy.management.AddField(addpts_wgs84, "Comp_Group", "TEXT", "", "", 10)
+
+
+#: Call polygon assignment function
+# print("Assigning polygon attributes ...")
+# polygon_time = time.time()
+# assign_poly_attr(addpts_wgs84, poly_dict)
+# print("\n    Time elapsed assigning polygon attributes: {:.2f}s".format(time.time() - polygon_time))
 #########################
 
 
@@ -106,8 +181,17 @@ addpts_sdf['UTAddPtID'] = addpts_sdf.progress_apply(lambda r: f'''{r['UTAddPtID'
 print("\n    Time elapsed updating UTAddPtID as a lambda function: {:.2f}s".format(time.time() - update_time))
 
 #: Populate 'City' with address system where city is empty
-print("Populating 'City' with 'AddSystem' where blank ...")
+print("Populating 'City' with 'AddSystem' where blank and removing parenthesis...")
 addpts_sdf['City'] = addpts_sdf['City'].where(addpts_sdf['City'].str.len() > 0, addpts_sdf['AddSystem'])
+#: If City or AddSystem contains a parenthesis, split on first and remove
+mask = addpts_sdf['City'].str.contains('(', regex=False)
+addpts_sdf.loc[mask, 'City'] = addpts_sdf[mask].progress_apply(lambda r: r['City'].rsplit('(', 1)[0].strip(), axis = 1)
+mask = addpts_sdf['AddSystem'].str.contains('(', regex=False)
+addpts_sdf.loc[mask, 'AddSystem'] = addpts_sdf[mask].progress_apply(lambda r: r['AddSystem'].rsplit('(', 1)[0].strip(), axis = 1)
+
+#: Turn flag field into yes/no
+print("Changing 'Flag' into a yes/no field...")
+addpts_sdf['Flag'] = addpts_sdf['yes'].where(addpts_sdf['Flag'].isin([None, '', ' ']), 'no')
 
 #: Calc UNIT as new variable
 print("Calculating UNIT as a new column ...")
@@ -154,7 +238,7 @@ print("\n    Time elapsed in matID as a lambda function: {:.2f}s".format(time.ti
 
 #: Slim down the dataframe to a specified set of columns
 columns = ['FullAdd', 'AddNum', 'PrefixDir', 'StreetName', 'SuffixDir', 'StreetType', 'UNIT', 'STREET', 'City', 'ZipCode', 'State',
-           'ParcelID', 'longitude', 'latitude', 'matID']
+           'ParcelID', 'longitude', 'latitude', 'matID', 'Comp_Group', 'Flag']
 addpts_slim = addpts_sdf[columns]
 
 #: Strip all strings of whitespace
@@ -177,7 +261,7 @@ addpts_slim.nunique()
 
 
 #: Export dataframe to CSV
-mat_csv = os.path.join(work_dir, f'DABS_mat.csv')
+mat_csv = os.path.join(work_dir, 'DABS_mat.csv')
 addpts_slim.to_csv(mat_csv)
 
 
