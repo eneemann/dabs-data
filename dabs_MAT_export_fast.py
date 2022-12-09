@@ -191,7 +191,9 @@ addpts_sdf.loc[mask, 'AddSystem'] = addpts_sdf[mask].progress_apply(lambda r: r[
 
 #: Turn flag field into yes/no
 print("Changing 'Flag' into a yes/no field...")
-addpts_sdf['Flag'] = addpts_sdf['yes'].where(addpts_sdf['Flag'].isin([None, '', ' ']), 'no')
+mask = addpts_sdf['Flag'].isin([None, '', ' '])
+addpts_sdf.loc[mask, 'Flag'] = 'no'
+addpts_sdf.loc[~mask, 'Flag'] = 'yes'
 
 #: Calc UNIT as new variable
 print("Calculating UNIT as a new column ...")
