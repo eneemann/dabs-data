@@ -18,14 +18,17 @@ today = time.strftime("%Y%m%d")
 #: Create variables
 dabs_db = r"C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\DABS_latest_data.gdb"
 SGID = r"C:\Users\eneemann\AppData\Roaming\ESRI\ArcGISPro\Favorites\internal@SGID@internal.agrc.utah.gov.sde"
-dabs_licenses = os.path.join(dabs_db, "DABS_All_Licenses")
+# dabs_licenses = os.path.join(dabs_db, "DABS_All_Licenses")
+dabs_licenses = os.path.join(r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\OpenGov\address_fixes_20221206\DABS.gdb', "DABS_All_Licenses_20221209_update_clean")
 zone_path = os.path.join(dabs_db, 'DABS_Compliance_Zones')
 county_path = os.path.join(SGID, 'SGID.BOUNDARIES.Counties')
+flag_path = os.path.join(dabs_db, 'DABS_Flag_Areas')
 
 #: Set up polygon assignment fields
 zone_field = 'Zone_ID'
 group_field = 'Group_Name'
 county_field = 'NAME'
+flag_field = 'category'
 
 #: Create polygon assignment dictionary where key is name of field that needs updated in points layer
 #: format is:
@@ -33,7 +36,8 @@ county_field = 'NAME'
 poly_dict = {
         'Comp_Zone': {'poly_path': zone_path, 'poly_field': zone_field},
         'Comp_Group': {'poly_path': zone_path, 'poly_field': group_field},
-        'County': {'poly_path': county_path, 'poly_field': county_field}
+        'County': {'poly_path': county_path, 'poly_field': county_field},
+        'Flag': {'poly_path': flag_path, 'poly_field': flag_field}
         }
 
 #: Create dictionaries for attribute look-ups based on two-letter license type code
@@ -247,13 +251,13 @@ fields = ['Lic_Number', 'Lic_Type', 'Lic_Descr', 'Lic_Group', 'Renew_Date', 'Com
 with arcpy.da.UpdateCursor(dabs_licenses, fields) as cursor:
     print("Looping through rows to calculate DABS fields ...")
     for row in cursor:
-        lic_type = row[0][:2]
+        lic_type = row[0][:2].upper()
         row[1] = lic_type
         row[2] = dabs_descr[f'{lic_type}']
         row[3] = dabs_group[f'{lic_type}']
         row[4] = dabs_renew[f'{lic_type}']
         row[5] = dabs_comp_needed[f'{lic_type}']
-        row[6] = None
+        # row[6] = None
         update_count += 1
         cursor.updateRow(row)
 print(f"Total count of updates is {update_count}")
