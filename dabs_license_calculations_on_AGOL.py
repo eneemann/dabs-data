@@ -277,7 +277,7 @@ with arcpy.da.UpdateCursor("dabs_lyr", fields) as cursor:
         row[3] = dabs_group[f'{lic_type}']
         row[4] = dabs_renew[f'{lic_type}']
         row[5] = dabs_comp_needed[f'{lic_type}']
-        row[6] = None
+        # row[6] = None
         update_count += 1
         cursor.updateRow(row)
 print(f"Total count of updates is {update_count}")
