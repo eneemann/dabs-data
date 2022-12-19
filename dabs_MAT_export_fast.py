@@ -191,8 +191,8 @@ addpts_sdf.loc[mask, 'City'] = addpts_sdf[mask].progress_apply(lambda r: r['City
 #: Clean up 'FullAdd' values (remove apostrophes)
 print("Cleaning up 'FullAdd' values...")
 #: If AddSystem contains apostrophes, remove them
-mask = addpts_sdf['FullAdd'].str.contains("'", regex=False)
-addpts_sdf.loc[mask, 'FullAdd'] = addpts_sdf[mask].progress_apply(lambda r: r['FullAdd'].strip("'").strip(), axis = 1)
+mask = addpts_sdf['FullAdd'].str.contains("'")
+addpts_sdf.loc[mask, 'FullAdd'] = addpts_sdf[mask].progress_apply(lambda r: r['FullAdd'].replace("'", ""), axis = 1)
 
 #: Turn flag field into yes/no
 print("Changing 'Flag' into a yes/no field...")
@@ -218,11 +218,11 @@ addpts_sdf['STREET'] = addpts_sdf.progress_apply(lambda r: f'''{r['FullAdd']}'''
 mask = ~addpts_sdf['UnitType'].isin([None, 'None', '', ' '])
 addpts_sdf.loc[mask, 'STREET'] = addpts_sdf[mask].progress_apply(lambda r: r['STREET'].split(r['UnitType'])[0].strip(), axis = 1)
 # If # in STREET
-mask = addpts_sdf['STREET'].str.contains('#', regex=False)
+mask = addpts_sdf['STREET'].str.contains('#')
 addpts_sdf.loc[mask, 'STREET'] = addpts_sdf[mask].progress_apply(lambda r: r['STREET'].split('#')[0].strip(), axis = 1)
 # If apostrophe in STREET
-mask = addpts_sdf['STREET'].str.contains("'", regex=False)
-addpts_sdf.loc[mask, 'STREET'] = addpts_sdf[mask].progress_apply(lambda r: r['STREET'].strip("'").strip(), axis = 1)
+mask = addpts_sdf['STREET'].str.contains("'")
+addpts_sdf.loc[mask, 'STREET'] = addpts_sdf[mask].progress_apply(lambda r: r['STREET'].replace("'", ""), axis = 1)
 print("\n    Time elapsed for STREET calculation: {:.2f}s".format(time.time() - street_time))
 
 #: Calc lat/lon as new variable
@@ -243,13 +243,23 @@ print("Calculating matID as a lambda function ...")
 mat_lambda = time.time()
 #: Change matID calculation to follow 'h3index_UNIT' pattern
 # addpts_sdf['matID'] = addpts_sdf.progress_apply(lambda r: f'''{r['UTAddPtID']}_{r['h3_index_13']}''', axis = 1)
-addpts_sdf['matID'] = addpts_sdf.progress_apply(lambda r: f'''{r['h3_index_13']}_{r['UNIT']}'''.rstrip('_').replace(' ', '_').strip(), axis = 1)
+# addpts_sdf['matID'] = addpts_sdf.progress_apply(lambda r: f'''{r['h3_index_13']}_{r['UNIT']}'''.rstrip('_').replace(' ', '_').strip(), axis = 1)
+addpts_sdf['matID'] = addpts_sdf.progress_apply(lambda r: f'''{r['h3_index_13']}_{r['AddNum']}_{r['UNIT']}'''.rstrip('_').replace(' ', '_').strip(), axis = 1)
 print("\n    Time elapsed in matID as a lambda function: {:.2f}s".format(time.time() - mat_lambda))
 
-#: Augment matIDs to add incremented value on duplicates
-augment_lambda = time.time()
+# #: Sort and then augment matIDs to add incremented value on duplicates, to ensure uniqueness
+# augment_lambda = time.time()
+# addpts_sdf.sort_values(['matID', 'latitude', 'longitude', 'AddNum', 'UNIT'], axis=0,
+#                                    ascending=[True, False, True, True, True], inplace=True)
+# addpts_sdf['matID_counts'] = addpts_sdf.groupby(['matID']).transform(len)
+# # If matID is duplicated
+# top100 = addpts_sdf.head(100)
 
-print("\n    Time elapsed augmenting matIDs to prevent duplicates: {:.2f}s".format(time.time() - augment_lambda))
+# dups = addpts_sdf[addpts_sdf['matID_counts'] > 1]
+# dup_matIDs = dups['matID'].unique()
+
+# addpts_sdf.loc[mask, 'matID'] = addpts_sdf[mask].progress_apply(lambda r: r['STREET'].strip("'").strip(), axis = 1)
+# print("\n    Time elapsed augmenting matIDs to prevent duplicates: {:.2f}s".format(time.time() - augment_lambda))
 
 #: Slim down the dataframe to a specified set of columns
 columns = ['FullAdd', 'AddNum', 'PrefixDir', 'StreetName', 'SuffixDir', 'StreetType', 'UNIT', 'STREET', 'City', 'ZipCode', 'State',
@@ -276,7 +286,7 @@ addpts_slim.nunique()
 
 
 #: Export dataframe to CSV
-mat_csv = os.path.join(work_dir, 'DABS_mat_ALL_no_dups.csv')
+mat_csv = os.path.join(work_dir, 'DABS_mat_ALL_no_dups_19.csv')
 addpts_slim.to_csv(mat_csv)
 
 
@@ -299,3 +309,16 @@ print("Script shutting down ...")
 readable_end = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 print("The script end time is {}".format(readable_end))
 print("Time elapsed: {:.2f}s".format(time.time() - start_time))
+
+# cabela = addpts_sdf[addpts_sdf['STREET'].str.contains('CABELA', regex=False)]
+# mask = cabela['FullAdd'].str.contains("'")
+# cabela.loc[mask, 'FullAdd'] = cabela[mask].progress_apply(lambda r: r['FullAdd'].replace("'", ""), axis = 1)
+# # cabela.loc[mask, 'FullAdd'] = cabela[mask].progress_apply(lambda r: f'''{r['FullAdd']}'''.strip("'"), axis = 1)
+# cabela.loc[906788, 'FullAdd']
+
+
+
+# cabela['FullAdd'] = cabela.progress_apply(lambda r: r['FullAdd'].strip("'").strip(), axis = 1)
+# # mask = addpts_sdf['FullAdd'].str.contains("""\'""", regex=True)
+
+# # cabela.loc[mask, 'FullAdd'] = cabela[mask].progress_apply(lambda r: r['FullAdd'].strip("'").strip(), axis = 1)
