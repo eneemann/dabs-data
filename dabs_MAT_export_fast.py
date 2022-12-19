@@ -26,6 +26,7 @@ start_time = time.time()
 readable_start = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 print("The script start time is {}".format(readable_start))
 today = time.strftime("%Y%m%d")
+today = '20221209'
 
 #: Set up directories
 base_dir = r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\MAT'
@@ -174,20 +175,24 @@ def assign_poly_attr(pts, polygonDict):
 print("Converting working data to spatial dataframe ...")
 addpts_sdf = pd.DataFrame.spatial.from_featureclass(addpts_wgs84)
 
-#: Updating UTAddPtID in a lamdba function
-print("Updating UTAddPtID as a lambda function ...")
-update_time = time.time()
-addpts_sdf['UTAddPtID'] = addpts_sdf.progress_apply(lambda r: f'''{r['UTAddPtID']}'''.replace(' | ', '_').replace(' ', '_').strip(), axis=1)
-print("\n    Time elapsed updating UTAddPtID as a lambda function: {:.2f}s".format(time.time() - update_time))
+# #: Updating UTAddPtID in a lamdba function
+# print("Updating UTAddPtID as a lambda function ...")
+# update_time = time.time()
+# addpts_sdf['UTAddPtID'] = addpts_sdf.progress_apply(lambda r: f'''{r['UTAddPtID']}'''.replace(' | ', '_').replace(' ', '_').strip(), axis=1)
+# print("\n    Time elapsed updating UTAddPtID as a lambda function: {:.2f}s".format(time.time() - update_time))
 
-#: Populate 'City' with address system where city is empty
-print("Populating 'City' with 'AddSystem' where blank and removing parenthesis...")
-addpts_sdf['City'] = addpts_sdf['City'].where(addpts_sdf['City'].str.len() > 0, addpts_sdf['AddSystem'])
-#: If City or AddSystem contains a parenthesis, split on first and remove
+#: Replace 'City' values with 'AddSystem' values
+print("Populating 'City' field with 'AddSystem' values...")
+addpts_sdf['City'] = addpts_sdf['AddSystem']
+#: If AddSystem contains a parenthesis, split on first and remove
 mask = addpts_sdf['City'].str.contains('(', regex=False)
 addpts_sdf.loc[mask, 'City'] = addpts_sdf[mask].progress_apply(lambda r: r['City'].rsplit('(', 1)[0].strip(), axis = 1)
-mask = addpts_sdf['AddSystem'].str.contains('(', regex=False)
-addpts_sdf.loc[mask, 'AddSystem'] = addpts_sdf[mask].progress_apply(lambda r: r['AddSystem'].rsplit('(', 1)[0].strip(), axis = 1)
+
+#: Clean up 'FullAdd' values (remove apostrophes)
+print("Cleaning up 'FullAdd' values...")
+#: If AddSystem contains apostrophes, remove them
+mask = addpts_sdf['FullAdd'].str.contains("'", regex=False)
+addpts_sdf.loc[mask, 'FullAdd'] = addpts_sdf[mask].progress_apply(lambda r: r['FullAdd'].strip("'").strip(), axis = 1)
 
 #: Turn flag field into yes/no
 print("Changing 'Flag' into a yes/no field...")
@@ -213,8 +218,11 @@ addpts_sdf['STREET'] = addpts_sdf.progress_apply(lambda r: f'''{r['FullAdd']}'''
 mask = ~addpts_sdf['UnitType'].isin([None, 'None', '', ' '])
 addpts_sdf.loc[mask, 'STREET'] = addpts_sdf[mask].progress_apply(lambda r: r['STREET'].split(r['UnitType'])[0].strip(), axis = 1)
 # If # in STREET
-mask = addpts_sdf['STREET'].str.contains('#')
+mask = addpts_sdf['STREET'].str.contains('#', regex=False)
 addpts_sdf.loc[mask, 'STREET'] = addpts_sdf[mask].progress_apply(lambda r: r['STREET'].split('#')[0].strip(), axis = 1)
+# If apostrophe in STREET
+mask = addpts_sdf['STREET'].str.contains("'", regex=False)
+addpts_sdf.loc[mask, 'STREET'] = addpts_sdf[mask].progress_apply(lambda r: r['STREET'].strip("'").strip(), axis = 1)
 print("\n    Time elapsed for STREET calculation: {:.2f}s".format(time.time() - street_time))
 
 #: Calc lat/lon as new variable
@@ -238,6 +246,11 @@ mat_lambda = time.time()
 addpts_sdf['matID'] = addpts_sdf.progress_apply(lambda r: f'''{r['h3_index_13']}_{r['UNIT']}'''.rstrip('_').replace(' ', '_').strip(), axis = 1)
 print("\n    Time elapsed in matID as a lambda function: {:.2f}s".format(time.time() - mat_lambda))
 
+#: Augment matIDs to add incremented value on duplicates
+augment_lambda = time.time()
+
+print("\n    Time elapsed augmenting matIDs to prevent duplicates: {:.2f}s".format(time.time() - augment_lambda))
+
 #: Slim down the dataframe to a specified set of columns
 columns = ['FullAdd', 'AddNum', 'PrefixDir', 'StreetName', 'SuffixDir', 'StreetType', 'UNIT', 'STREET', 'City', 'ZipCode', 'State',
            'ParcelID', 'longitude', 'latitude', 'matID', 'Comp_Group', 'Flag']
@@ -252,7 +265,7 @@ print("\n    Time elapsed stripping all whitespace: {:.2f}s".format(time.time() 
 orig_length = len(addpts_slim.index)
 print(f'Number of points before de-duplicating:  {orig_length}')
 
-addpts_slim.drop_duplicates('matID', inplace=True)
+# addpts_slim.drop_duplicates('matID', inplace=True)
 
 final_length = len(addpts_slim.index)
 diff = orig_length - final_length
@@ -263,7 +276,7 @@ addpts_slim.nunique()
 
 
 #: Export dataframe to CSV
-mat_csv = os.path.join(work_dir, 'DABS_mat.csv')
+mat_csv = os.path.join(work_dir, 'DABS_mat_ALL_no_dups.csv')
 addpts_slim.to_csv(mat_csv)
 
 
