@@ -70,6 +70,11 @@ poly_dict = {
         'Flag': {'poly_path': flag_path, 'poly_field': flag_field}
         }
 
+#: Get existing DABS licenses and put in a list to check against later
+dabs_db = r"C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\DABS_latest_data.gdb"
+# dabs_licenses = os.path.join(dabs_db, "DABS_All_Licenses")
+dabs_licenses = os.path.join(r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\OpenGov\address_fixes_20221206\DABS.gdb', "DABS_All_Licenses_20221216_addsys_fixed")
+dabs_addrs = [str(row).strip('''(',)"''').replace("'", "") for row in arcpy.da.SearchCursor(dabs_licenses, 'Address')]
 
 #: Create working geodatabase with today's date
 def create_gdb():
@@ -155,19 +160,19 @@ def assign_poly_attr(pts, polygonDict):
      
 ########################    
 #: Call functions 
-# create_gdb()
-# addpts = export_sgid()
-# project_fc()
+create_gdb()
+addpts = export_sgid()
+project_fc()
 
-# arcpy.management.AddField(addpts_wgs84, "Flag", "TEXT", "", "", 10)
-# arcpy.management.AddField(addpts_wgs84, "Comp_Group", "TEXT", "", "", 10)
+arcpy.management.AddField(addpts_wgs84, "Flag", "TEXT", "", "", 10)
+arcpy.management.AddField(addpts_wgs84, "Comp_Group", "TEXT", "", "", 10)
 
 
 #: Call polygon assignment function
-# print("Assigning polygon attributes ...")
-# polygon_time = time.time()
-# assign_poly_attr(addpts_wgs84, poly_dict)
-# print("\n    Time elapsed assigning polygon attributes: {:.2f}s".format(time.time() - polygon_time))
+print("Assigning polygon attributes ...")
+polygon_time = time.time()
+assign_poly_attr(addpts_wgs84, poly_dict)
+print("\n    Time elapsed assigning polygon attributes: {:.2f}s".format(time.time() - polygon_time))
 #########################
 
 
@@ -225,6 +230,14 @@ mask = addpts_sdf['STREET'].str.contains("'")
 addpts_sdf.loc[mask, 'STREET'] = addpts_sdf[mask].progress_apply(lambda r: r['STREET'].replace("'", ""), axis = 1)
 print("\n    Time elapsed for STREET calculation: {:.2f}s".format(time.time() - street_time))
 
+#: Calc DABS as new variable
+print("Calculating DABS as a new column ...")
+dabs_time = time.time()
+mask = addpts_sdf['FullAdd'].isin(dabs_addrs)
+addpts_sdf.loc[mask, 'DABS'] = 'yes'
+addpts_sdf.loc[~mask, 'DABS'] = 'no'
+print("\n    Time elapsed for STREET calculation: {:.2f}s".format(time.time() - dabs_time))
+
 #: Calc lat/lon as new variable
 print("Calculating lat/lon as a new column ...")
 latlon_time = time.time()
@@ -262,9 +275,9 @@ print("\n    Time elapsed in matID as a lambda function: {:.2f}s".format(time.ti
 # print("\n    Time elapsed augmenting matIDs to prevent duplicates: {:.2f}s".format(time.time() - augment_lambda))
 
 #: Slim down the dataframe to a specified set of columns
-columns = ['FullAdd', 'AddNum', 'PrefixDir', 'StreetName', 'SuffixDir', 'StreetType', 'UNIT', 'STREET', 'City', 'ZipCode', 'State',
-           'ParcelID', 'longitude', 'latitude', 'matID', 'Comp_Group', 'Flag']
-addpts_slim = addpts_sdf[columns]
+columns_dabs = ['FullAdd', 'AddNum', 'PrefixDir', 'StreetName', 'SuffixDir', 'StreetType', 'UNIT', 'STREET', 'City', 'ZipCode', 'State',
+           'ParcelID', 'longitude', 'latitude', 'matID', 'Comp_Group', 'Flag', 'DABS']
+addpts_slim = addpts_sdf[columns_dabs]
 
 #: Strip all strings of whitespace
 strip_time = time.time()
@@ -275,7 +288,12 @@ print("\n    Time elapsed stripping all whitespace: {:.2f}s".format(time.time() 
 orig_length = len(addpts_slim.index)
 print(f'Number of points before de-duplicating:  {orig_length}')
 
-# addpts_slim.drop_duplicates('matID', inplace=True)
+addpts_slim.sort_values(['DABS', 'matID'], axis=0, ascending=[False, True], inplace=True)
+addpts_slim.drop_duplicates('matID', inplace=True, keep='first')
+
+columns = ['FullAdd', 'AddNum', 'PrefixDir', 'StreetName', 'SuffixDir', 'StreetType', 'UNIT', 'STREET', 'City', 'ZipCode', 'State',
+           'ParcelID', 'longitude', 'latitude', 'matID', 'Comp_Group', 'Flag']
+addpts_slim = addpts_slim[columns]
 
 final_length = len(addpts_slim.index)
 diff = orig_length - final_length
@@ -286,7 +304,7 @@ addpts_slim.nunique()
 
 
 #: Export dataframe to CSV
-mat_csv = os.path.join(work_dir, 'DABS_mat_ALL_no_dups_19.csv')
+mat_csv = os.path.join(work_dir, 'DABS_mat_no_dups.csv')
 addpts_slim.to_csv(mat_csv)
 
 
