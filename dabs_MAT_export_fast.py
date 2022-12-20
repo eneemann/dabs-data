@@ -26,7 +26,7 @@ start_time = time.time()
 readable_start = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 print("The script start time is {}".format(readable_start))
 today = time.strftime("%Y%m%d")
-today = '20221209'
+# today = '20221209'
 
 #: Set up directories
 base_dir = r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\MAT'
@@ -76,6 +76,7 @@ dabs_db = r"C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\DABS_latest_data.gd
 dabs_licenses = os.path.join(r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\OpenGov\address_fixes_20221206\DABS.gdb', "DABS_All_Licenses_20221216_addsys_fixed")
 dabs_addrs = [str(row).strip('''(',)"''').replace("'", "") for row in arcpy.da.SearchCursor(dabs_licenses, 'Address')]
 
+              
 #: Create working geodatabase with today's date
 def create_gdb():
     print("Creating file geodatabase ...")
@@ -180,12 +181,6 @@ print("\n    Time elapsed assigning polygon attributes: {:.2f}s".format(time.tim
 print("Converting working data to spatial dataframe ...")
 addpts_sdf = pd.DataFrame.spatial.from_featureclass(addpts_wgs84)
 
-# #: Updating UTAddPtID in a lamdba function
-# print("Updating UTAddPtID as a lambda function ...")
-# update_time = time.time()
-# addpts_sdf['UTAddPtID'] = addpts_sdf.progress_apply(lambda r: f'''{r['UTAddPtID']}'''.replace(' | ', '_').replace(' ', '_').strip(), axis=1)
-# print("\n    Time elapsed updating UTAddPtID as a lambda function: {:.2f}s".format(time.time() - update_time))
-
 #: Replace 'City' values with 'AddSystem' values
 print("Populating 'City' field with 'AddSystem' values...")
 addpts_sdf['City'] = addpts_sdf['AddSystem']
@@ -254,25 +249,9 @@ print("\n    Time elapsed in h3 as a lambda function: {:.2f}s".format(time.time(
 #: Calculate matID in a lamdba function
 print("Calculating matID as a lambda function ...")
 mat_lambda = time.time()
-#: Change matID calculation to follow 'h3index_UNIT' pattern
-# addpts_sdf['matID'] = addpts_sdf.progress_apply(lambda r: f'''{r['UTAddPtID']}_{r['h3_index_13']}''', axis = 1)
-# addpts_sdf['matID'] = addpts_sdf.progress_apply(lambda r: f'''{r['h3_index_13']}_{r['UNIT']}'''.rstrip('_').replace(' ', '_').strip(), axis = 1)
+#: Change matID calculation to follow 'h3index_AddNum_UNIT' pattern
 addpts_sdf['matID'] = addpts_sdf.progress_apply(lambda r: f'''{r['h3_index_13']}_{r['AddNum']}_{r['UNIT']}'''.rstrip('_').replace(' ', '_').strip(), axis = 1)
 print("\n    Time elapsed in matID as a lambda function: {:.2f}s".format(time.time() - mat_lambda))
-
-# #: Sort and then augment matIDs to add incremented value on duplicates, to ensure uniqueness
-# augment_lambda = time.time()
-# addpts_sdf.sort_values(['matID', 'latitude', 'longitude', 'AddNum', 'UNIT'], axis=0,
-#                                    ascending=[True, False, True, True, True], inplace=True)
-# addpts_sdf['matID_counts'] = addpts_sdf.groupby(['matID']).transform(len)
-# # If matID is duplicated
-# top100 = addpts_sdf.head(100)
-
-# dups = addpts_sdf[addpts_sdf['matID_counts'] > 1]
-# dup_matIDs = dups['matID'].unique()
-
-# addpts_sdf.loc[mask, 'matID'] = addpts_sdf[mask].progress_apply(lambda r: r['STREET'].strip("'").strip(), axis = 1)
-# print("\n    Time elapsed augmenting matIDs to prevent duplicates: {:.2f}s".format(time.time() - augment_lambda))
 
 #: Slim down the dataframe to a specified set of columns
 columns_dabs = ['FullAdd', 'AddNum', 'PrefixDir', 'StreetName', 'SuffixDir', 'StreetType', 'UNIT', 'STREET', 'City', 'ZipCode', 'State',
@@ -304,7 +283,7 @@ addpts_slim.nunique()
 
 
 #: Export dataframe to CSV
-mat_csv = os.path.join(work_dir, 'DABS_mat_no_dups.csv')
+mat_csv = os.path.join(work_dir, 'DABS_mat.csv')
 addpts_slim.to_csv(mat_csv)
 
 
@@ -318,25 +297,12 @@ def delete_files():
             print(f"Deleting {file} ...")
             arcpy.management.Delete(file)
     
+
 delete_files()
 
 
-
-#: Stop timer and print end time in UTC
+#: Stop timer and print end time
 print("Script shutting down ...")
 readable_end = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 print("The script end time is {}".format(readable_end))
 print("Time elapsed: {:.2f}s".format(time.time() - start_time))
-
-# cabela = addpts_sdf[addpts_sdf['STREET'].str.contains('CABELA', regex=False)]
-# mask = cabela['FullAdd'].str.contains("'")
-# cabela.loc[mask, 'FullAdd'] = cabela[mask].progress_apply(lambda r: r['FullAdd'].replace("'", ""), axis = 1)
-# # cabela.loc[mask, 'FullAdd'] = cabela[mask].progress_apply(lambda r: f'''{r['FullAdd']}'''.strip("'"), axis = 1)
-# cabela.loc[906788, 'FullAdd']
-
-
-
-# cabela['FullAdd'] = cabela.progress_apply(lambda r: r['FullAdd'].strip("'").strip(), axis = 1)
-# # mask = addpts_sdf['FullAdd'].str.contains("""\'""", regex=True)
-
-# # cabela.loc[mask, 'FullAdd'] = cabela[mask].progress_apply(lambda r: r['FullAdd'].strip("'").strip(), axis = 1)
