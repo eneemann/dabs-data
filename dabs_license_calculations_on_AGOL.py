@@ -31,13 +31,15 @@ del pw
 
 #: Create variables (pointing to AGOL data)
 dabs_licenses = credentials.AGOL_LAYER
-zone_path = r'https://services1.arcgis.com/99lidPhWCzftIe9K/ArcGIS/rest/services/DABS_OpenGov_GIS/FeatureServer/1'
+zone_path = r'https://services1.arcgis.com/99lidPhWCzftIe9K/ArcGIS/rest/services/DABS_GIS/FeatureServer/1'
 county_path = r'https://services1.arcgis.com/99lidPhWCzftIe9K/ArcGIS/rest/services/UtahCountyBoundaries/FeatureServer/0'
+flag_path = r'https://services1.arcgis.com/99lidPhWCzftIe9K/ArcGIS/rest/services/DABS_GIS/FeatureServer/3'
 
 #: Set up polygon assignment fields
 zone_field = 'Zone_ID'
 group_field = 'Group_Name'
 county_field = 'NAME'
+flag_field = 'category'
 
 #: Create polygon assignment dictionary where key is name of field that needs updated in points layer
 #: format is:
@@ -45,7 +47,8 @@ county_field = 'NAME'
 poly_dict = {
         'Comp_Zone': {'poly_path': zone_path, 'poly_field': zone_field},
         'Comp_Group': {'poly_path': zone_path, 'poly_field': group_field},
-        'County': {'poly_path': county_path, 'poly_field': county_field}
+        'County': {'poly_path': county_path, 'poly_field': county_field},
+        'Flag': {'poly_path': flag_path, 'poly_field': flag_field}
         }
 
 #: Create dictionaries for attribute look-ups based on two-letter license type code
@@ -254,6 +257,7 @@ def assign_poly_attr(pts, polygonDict):
 if arcpy.Exists("dabs_lyr"):
     arcpy.Delete_management("dabs_lyr")
 query = """County IS NULL or County IN ('', ' ')"""
+# query = ''
 arcpy.management.MakeFeatureLayer(dabs_licenses, "dabs_lyr", query)
 
 #: Calculate lon/lat values for all points (in WGS84 coords)
@@ -280,11 +284,24 @@ with arcpy.da.UpdateCursor("dabs_lyr", fields) as cursor:
         # row[6] = None
         update_count += 1
         cursor.updateRow(row)
-print(f"Total count of updates is {update_count}")
+print(f"    Total count of updates is: {update_count}")
 
 #: Call polygon assignment function
 print("Assigning polygon attributes ...")
 assign_poly_attr("dabs_lyr", poly_dict)
+
+#: Realculate Flag field to yes/no values
+flag_update_count = 0
+with arcpy.da.UpdateCursor("dabs_lyr", ['Flag']) as cursor:
+    print("Looping through rows to update the flag field ...")
+    for row in cursor:
+        if row[0] in [None, 'None', '', ' ', 'no']:
+            row[0] = 'no'
+        else:
+            row[0] = 'yes'
+        flag_update_count += 1
+        cursor.updateRow(row)
+print(f"   Total count of flag field updates is: {flag_update_count}")
 
 #: Delete temporary layer
 if arcpy.Exists("dabs_lyr"):
