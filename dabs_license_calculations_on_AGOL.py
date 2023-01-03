@@ -31,9 +31,17 @@ del pw
 
 #: Create variables (pointing to AGOL data)
 dabs_licenses = credentials.AGOL_LAYER
-zone_path = r'https://services1.arcgis.com/99lidPhWCzftIe9K/ArcGIS/rest/services/DABS_GIS/FeatureServer/1'
-county_path = r'https://services1.arcgis.com/99lidPhWCzftIe9K/ArcGIS/rest/services/UtahCountyBoundaries/FeatureServer/0'
-flag_path = r'https://services1.arcgis.com/99lidPhWCzftIe9K/ArcGIS/rest/services/DABS_GIS/FeatureServer/3'
+
+dabs_db = r"C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\DABS_latest_data_republish.gdb"
+SGID = r"C:\Users\eneemann\AppData\Roaming\ESRI\ArcGISPro\Favorites\internal@SGID@internal.agrc.utah.gov.sde"
+zone_path = os.path.join(dabs_db, 'DABS_Compliance_Zones')
+county_path = os.path.join(SGID, 'SGID.BOUNDARIES.Counties')
+flag_path = os.path.join(dabs_db, 'DABS_Flag_Areas')
+
+#: Using only AGOL layers
+# zone_path = r'https://services1.arcgis.com/99lidPhWCzftIe9K/ArcGIS/rest/services/DABS_GIS/FeatureServer/1'
+# county_path = r'https://services1.arcgis.com/99lidPhWCzftIe9K/ArcGIS/rest/services/UtahCountyBoundaries/FeatureServer/0'
+# flag_path = r'https://services1.arcgis.com/99lidPhWCzftIe9K/ArcGIS/rest/services/DABS_GIS/FeatureServer/3'
 
 #: Set up polygon assignment fields
 zone_field = 'Zone_ID'
@@ -247,6 +255,7 @@ def assign_poly_attr(pts, polygonDict):
                         urow[1] =  poly_OID_field[pt_poly_link[urow[0]]]
                 except:         # if error raised, just put a blank in the field
                     urow[1] = ''
+                # print(f"""Updating {polygonDict[lyr]['poly_field']} to:    {urow[1]}""")
                 uCur.updateRow(urow)
     
         # Delete in memory near table
@@ -259,6 +268,7 @@ if arcpy.Exists("dabs_lyr"):
 query = """County IS NULL or County IN ('', ' ')"""
 # query = ''
 arcpy.management.MakeFeatureLayer(dabs_licenses, "dabs_lyr", query)
+print(f'Working on {arcpy.management.GetCount("dabs_lyr")[0]} features')
 
 #: Calculate lon/lat values for all points (in WGS84 coords)
 print("Calculating lat/lon values ...")
