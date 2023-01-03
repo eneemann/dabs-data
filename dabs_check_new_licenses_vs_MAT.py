@@ -36,9 +36,13 @@ today = time.strftime("%Y%m%d")
 
 #: Get addresses from proposed Google Sheet
 sheet_title = time.strftime("%m/%Y")
-sheet_title = '11/2022'
+sheet_title = '12/2022'
 sheet = gsheets_client.open_by_key(credentials.SHEET_ID)
 proposed_df = sheet.worksheet_by_title(sheet_title).get_as_df()
+
+#: Remove NULLs and blanks, strip whitespace
+proposed_df.drop(proposed_df[proposed_df['Address'].isin([None, 'None', '', ' '])].index, inplace=True)
+proposed_df = proposed_df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
 print(proposed_df.head())
 
 
