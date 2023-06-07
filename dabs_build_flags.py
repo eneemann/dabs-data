@@ -429,11 +429,11 @@ def delete_files():
 
 
 #: Call functions 
-# create_gdb()
-# export_data()
-# create_initial_layers()
-# add_libraries()
-# add_schools()
+create_gdb()
+export_data()
+create_initial_layers()
+add_libraries()
+add_schools()
 add_osm_plagrounds()
 build_buffer()
 copy_to_latest_db()
