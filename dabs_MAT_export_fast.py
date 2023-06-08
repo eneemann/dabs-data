@@ -29,6 +29,7 @@ today = time.strftime("%Y%m%d")
 # today = '20230201'
 
 # previous_mat_path = r"C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\MAT\DABS_20221209\DABS_mat.csv"
+previous_mat_path = r"C:\DABC\MAT\DABS_20230201\DABS_mat.csv"
 
 #: Set up directories
 base_dir = r'C:\DABC\MAT'
@@ -256,6 +257,19 @@ mat_lambda = time.time()
 #: Change matID calculation to follow 'h3index_AddNum_UNIT' pattern
 addpts_sdf['matID'] = addpts_sdf.progress_apply(lambda r: f'''{r['h3_index_13']}_{r['AddNum']}_{r['UNIT']}'''.rstrip('_').replace(' ', '_').strip(), axis = 1)
 print("\n    Time elapsed in matID as a lambda function: {:.2f}s".format(time.time() - mat_lambda))
+
+#: Remove duplicates on UTAddPtID
+#: Compare size of dataframe before/after removing UTAddPtID duplicates
+length_1 = len(addpts_sdf.index)
+print(f'Number of points before de-duplicating:  {length_1}')
+
+addpts_sdf.sort_values(['DABS', 'matID'], axis=0, ascending=[False, True], inplace=True)
+addpts_sdf.drop_duplicates('UTAddPtID', inplace=True, keep='first')
+
+length_2 = len(addpts_sdf.index)
+diff_addptid = length_1 - length_2
+print(f'Number of points after removing duplicates on matID:  {length_2}')
+print(f'Removed {diff_addptid} duplicates!')
 
 #: Slim down the dataframe to a specified set of columns
 columns_dabs = ['FullAdd', 'AddNum', 'PrefixDir', 'StreetName', 'SuffixDir', 'StreetType', 'UNIT', 'STREET', 'City', 'ZipCode', 'State',
