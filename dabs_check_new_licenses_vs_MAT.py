@@ -11,11 +11,7 @@ Script to compare addresses in new DABS licenses to addresses in the Master Addr
 
 import os
 import time
-import arcpy
 import pandas as pd
-from arcgis import GeoAccessor, GeoSeriesAccessor
-import numpy as np
-import h3
 from tqdm import tqdm
 import pygsheets
 
@@ -36,13 +32,13 @@ today = time.strftime("%Y%m%d")
 
 #: Get addresses from proposed Google Sheet
 sheet_title = time.strftime("%m/%Y")
-sheet_title = '12/2022'
+sheet_title = '05/2023'
 sheet = gsheets_client.open_by_key(credentials.SHEET_ID)
 proposed_df = sheet.worksheet_by_title(sheet_title).get_as_df()
 
 #: Remove NULLs and blanks, strip whitespace
 proposed_df.drop(proposed_df[proposed_df['Address'].isin([None, 'None', '', ' '])].index, inplace=True)
-proposed_df = proposed_df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+proposed_df = proposed_df.applymap(lambda x: x.strip().upper() if isinstance(x, str) else x)
 print(proposed_df.head())
 
 
@@ -53,7 +49,7 @@ proposed_sys = proposed_df.progress_apply(lambda r: f'''{r['Address']} {r['City'
                 
                                                                                        
 #: Get list of addresses from MAT
-mat_dir = r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\MAT\DABS_20221209'
+mat_dir = r'C:\DABC\MAT\DABS_20230602'
 mat_csv = os.path.join(mat_dir, 'DABS_mat.csv')
 mat_df = pd.read_csv(mat_csv)
 mat_addrs = list(mat_df['FullAdd'])
