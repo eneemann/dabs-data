@@ -24,7 +24,7 @@ readable_start = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
 print('The script start time is {}'.format(readable_start))
 
 # Update variables below
-database = r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\DABC.gdb'
+database = r'C:\DABC\DABC.gdb'
 points = os.path.join(database, "DABS_All_Licenses_20220907_new_schema")
 
 
