@@ -318,7 +318,6 @@ def delete_files():
             arcpy.management.Delete(file)
     
 
-delete_files()
 # delete_files()
 
 #: Compare new matIDs to previous matIDs
