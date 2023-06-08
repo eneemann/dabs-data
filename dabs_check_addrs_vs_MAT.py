@@ -28,12 +28,12 @@ print("The script start time is {}".format(readable_start))
 today = time.strftime("%Y%m%d")
 
 #: Create variables
-dabs_db = r"C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\DABS_latest_data.gdb"
+dabs_db = r"C:\DABC\DABS_latest_data.gdb"
 # dabs_licenses = os.path.join(dabs_db, "DABS_All_Licenses")
 # dabs_licenses = os.path.join(r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\OpenGov\address_fixes_20221206\DABS.gdb', "DABS_All_Licenses_20221215_addsys")
 # dabs_licenses = os.path.join(r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\OpenGov\address_fixes_20221206\DABS.gdb', "DABS_All_Licenses_20221219_noGUID")
 dabs_licenses = 'https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/DABS_GIS/FeatureServer/0'
-mat_dir = r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\MAT\DABS_20221209'
+mat_dir = r'C:\DABC\MAT\DABS_20230201'
 mat_csv = os.path.join(mat_dir, 'DABS_mat.csv')
 # mat_csv = os.path.join(mat_dir, 'DABS_mat_ALL_ADDRESSES.csv')
 # mat_csv = os.path.join(mat_dir, 'DABS_mat_no_dups.csv')
