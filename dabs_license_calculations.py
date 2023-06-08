@@ -16,10 +16,10 @@ print("The script start time is {}".format(readable_start))
 today = time.strftime("%Y%m%d")
 
 #: Create variables
-dabs_db = r"C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\DABS_latest_data.gdb"
+dabs_db = r"C:\DABC\DABS_latest_data.gdb"
 SGID = r"C:\Users\eneemann\AppData\Roaming\ESRI\ArcGISPro\Favorites\internal@SGID@internal.agrc.utah.gov.sde"
 # dabs_licenses = os.path.join(dabs_db, "DABS_All_Licenses")
-dabs_licenses = os.path.join(r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\OpenGov\address_fixes_20221206\DABS.gdb', "DABS_All_Licenses_20221219_noGUID")
+dabs_licenses = os.path.join(r'C:\DABC\OpenGov\address_fixes_20221206\DABS.gdb', "DABS_All_Licenses_20221219_noGUID")
 zone_path = os.path.join(dabs_db, 'DABS_Compliance_Zones')
 county_path = os.path.join(SGID, 'SGID.BOUNDARIES.Counties')
 flag_path = os.path.join(dabs_db, 'DABS_Flag_Areas')
