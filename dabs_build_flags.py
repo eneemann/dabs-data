@@ -27,9 +27,9 @@ print("The script start time is {}".format(readable_start))
 today = time.strftime("%Y%m%d")
 
 #: Set up directories
-base_dir = r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\Flags'
+base_dir = r'C:\DABC\Flags'
 work_dir = os.path.join(base_dir, f'Flags_{today}')
-latest_db = r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\DABS_latest_data.gdb'
+latest_db = r'C:\DABC\DABS_latest_data.gdb'
 
 if os.path.isdir(work_dir) == False:
     os.mkdir(work_dir)
