@@ -24,7 +24,7 @@ readable_start = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
 print('The script start time is {}'.format(readable_start))
 
 # Update variables below
-database = r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\OpenGov\address_fixes_20221206\DABS.gdb'
+database = r'C:\DABC\OpenGov\address_fixes_20221206\DABS.gdb'
 points = os.path.join(database, "DABS_All_Licenses_20221215_addsys")
 poly_db = r'C:\Users\eneemann\Desktop\Neemann\Address Grids\Address_Grid_updates.gdb\address_grids'
 
