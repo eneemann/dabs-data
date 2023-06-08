@@ -52,12 +52,17 @@ flag_field = 'category'
 #: Create polygon assignment dictionary where key is name of field that needs updated in points layer
 #: format is:
         #: 'pt_field_name': {'poly_path': path, 'poly_field': field}
+
 poly_dict = {
         'Comp_Zone': {'poly_path': zone_path, 'poly_field': zone_field},
         'Comp_Group': {'poly_path': zone_path, 'poly_field': group_field},
         'County': {'poly_path': county_path, 'poly_field': county_field},
         'Flag': {'poly_path': flag_path, 'poly_field': flag_field}
         }
+
+# poly_dict = {
+#         'Flag': {'poly_path': flag_path, 'poly_field': flag_field}
+#         }
 
 #: Create dictionaries for attribute look-ups based on two-letter license type code
 dabs_descr = {
@@ -265,8 +270,10 @@ def assign_poly_attr(pts, polygonDict):
 #: Delete temporary layer
 if arcpy.Exists("dabs_lyr"):
     arcpy.Delete_management("dabs_lyr")
+
+#: Use query to select the new points, might need to use Flag column if script fails partway through
 query = """County IS NULL or County IN ('', ' ')"""
-# query = ''
+# query = """Flag NOT IN ('yes', 'no')"""
 arcpy.management.MakeFeatureLayer(dabs_licenses, "dabs_lyr", query)
 print(f'Working on {arcpy.management.GetCount("dabs_lyr")[0]} features')
 
