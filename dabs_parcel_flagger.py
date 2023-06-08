@@ -21,7 +21,7 @@ print("The script start time is {}".format(readable_start))
 today = time.strftime("%Y%m%d")
 
 #: Set up variables
-latest_db = r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\DABS_latest_data.gdb'
+latest_db = r'C:\DABC\DABS_latest_data.gdb'
 flag_areas = os.path.join(latest_db, 'DABS_Flag_Areas')
 parcels = os.path.join(latest_db, 'Utah_Parcels')
 
