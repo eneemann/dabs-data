@@ -32,10 +32,11 @@ del pw
 #: Create variables (pointing to AGOL data)
 dabs_licenses = credentials.AGOL_LAYER
 
-dabs_db = r"C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\DABS_latest_data_republish.gdb"
+dabs_db = r"C:\DABC\DABS_latest_data.gdb"
 SGID = r"C:\Users\eneemann\AppData\Roaming\ESRI\ArcGISPro\Favorites\internal@SGID@internal.agrc.utah.gov.sde"
 zone_path = os.path.join(dabs_db, 'DABS_Compliance_Zones')
-county_path = os.path.join(SGID, 'SGID.BOUNDARIES.Counties')
+# county_path = os.path.join(SGID, 'SGID.BOUNDARIES.Counties')
+county_path = os.path.join(dabs_db, 'Counties')
 flag_path = os.path.join(dabs_db, 'DABS_Flag_Areas')
 
 #: Using only AGOL layers
