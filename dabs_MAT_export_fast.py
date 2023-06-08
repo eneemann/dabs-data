@@ -26,10 +26,12 @@ start_time = time.time()
 readable_start = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 print("The script start time is {}".format(readable_start))
 today = time.strftime("%Y%m%d")
-# today = '20221209'
+# today = '20230201'
+
+# previous_mat_path = r"C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\MAT\DABS_20221209\DABS_mat.csv"
 
 #: Set up directories
-base_dir = r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\MAT'
+base_dir = r'C:\DABC\MAT'
 work_dir = os.path.join(base_dir, f'DABS_{today}')
 
 if os.path.isdir(work_dir) == False:
@@ -39,7 +41,7 @@ today_db_name = "DABS_MAT_" + today
 today_db = os.path.join(work_dir, today_db_name + ".gdb")
 addpts_wgs84 = os.path.join(today_db, 'AddressPoints_WGS84')
 
-# dabc_db = r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\DABC.gdb'
+# dabc_db = r'C:\DABC\DABC.gdb'
 # addpts = os.path.join(dabc_db, r'TEST_Millard_SGID_Addpts')
 
 
@@ -71,9 +73,10 @@ poly_dict = {
         }
 
 #: Get existing DABS licenses and put in a list to check against later
-dabs_db = r"C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\DABS_latest_data.gdb"
-# dabs_licenses = os.path.join(dabs_db, "DABS_All_Licenses")
-dabs_licenses = os.path.join(r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\OpenGov\address_fixes_20221206\DABS.gdb', "DABS_All_Licenses_20221216_addsys_fixed")
+# dabs_db = r"C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\DABS_latest_data.gdb"
+dabs_db = r"C:\DABC\DABS_latest_data.gdb"
+dabs_licenses = os.path.join(dabs_db, "DABS_All_Licenses")
+# dabs_licenses = os.path.join(r'C:\Users\eneemann\Documents\ArcGIS\Projects\DABC\OpenGov\address_fixes_20221206\DABS.gdb', "DABS_All_Licenses_20221216_addsys_fixed")
 dabs_addrs = [str(row).strip('''(',)"''').replace("'", "") for row in arcpy.da.SearchCursor(dabs_licenses, 'Address')]
 
               
@@ -184,6 +187,7 @@ addpts_sdf = pd.DataFrame.spatial.from_featureclass(addpts_wgs84)
 #: Replace 'City' values with 'AddSystem' values
 print("Populating 'City' field with 'AddSystem' values...")
 addpts_sdf['City'] = addpts_sdf['AddSystem']
+
 #: If AddSystem contains a parenthesis, split on first and remove
 mask = addpts_sdf['City'].str.contains('(', regex=False)
 addpts_sdf.loc[mask, 'City'] = addpts_sdf[mask].progress_apply(lambda r: r['City'].rsplit('(', 1)[0].strip(), axis = 1)
@@ -263,20 +267,22 @@ strip_time = time.time()
 addpts_slim = addpts_slim.applymap(lambda x: x.strip() if isinstance(x, str) else x)
 print("\n    Time elapsed stripping all whitespace: {:.2f}s".format(time.time() - strip_time))
 
-#: Compare size of dataframe before/after removing duplicates
+#: Compare size of dataframe before/after removing matID duplicates
 orig_length = len(addpts_slim.index)
 print(f'Number of points before de-duplicating:  {orig_length}')
 
+#: Remove duplicates on matID
 addpts_slim.sort_values(['DABS', 'matID'], axis=0, ascending=[False, True], inplace=True)
 addpts_slim.drop_duplicates('matID', inplace=True, keep='first')
 
+#: remove 'DABS' column
 columns = ['FullAdd', 'AddNum', 'PrefixDir', 'StreetName', 'SuffixDir', 'StreetType', 'UNIT', 'STREET', 'City', 'ZipCode', 'State',
            'ParcelID', 'longitude', 'latitude', 'matID', 'Comp_Group', 'Flag']
 addpts_slim = addpts_slim[columns]
 
 final_length = len(addpts_slim.index)
 diff = orig_length - final_length
-print(f'Number of points after removing duplicates:  {final_length}')
+print(f'Number of points after removing duplicates on matID:  {final_length}')
 print(f'Removed {diff} duplicates!')
 
 addpts_slim.nunique()
