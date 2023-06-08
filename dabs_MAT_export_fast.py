@@ -319,6 +319,19 @@ def delete_files():
     
 
 delete_files()
+# delete_files()
+
+#: Compare new matIDs to previous matIDs
+print(f'Comparing current MAT to previous MAT {previous_mat_path}:')
+old_mat = pd.read_csv(previous_mat_path, header=0, usecols=['matID'], dtype={'matID': str})
+
+comparison = addpts_slim['matID'].isin(old_mat['matID']).value_counts()
+total = comparison.sum()
+print(f'matIDs that match the previous MAT:  {comparison[1]:7}   {(comparison[1]/total)*100:5,.2f}%')
+if len(comparison) > 1:
+    print(f'New or different matIDs:             {comparison[0]:7}   {(comparison[0]/total)*100:5,.2f}%')
+else:
+    print('No new or differnt matIDs!')
 
 
 #: Stop timer and print end time
@@ -326,3 +339,4 @@ print("Script shutting down ...")
 readable_end = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 print("The script end time is {}".format(readable_end))
 print("Time elapsed: {:.2f}s".format(time.time() - start_time))
+
